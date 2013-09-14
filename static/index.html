@@ -146,10 +146,6 @@
                     $('#source').val(response.output);
                 }
 
-                if (response.error){
-                    noty({text: response.error})
-                }
-
             });
             the.ninetyfy_in_progress = false;
         }
@@ -223,10 +219,6 @@
     <script>
         $(function () {
 
-            $.noty.defaults = {
-                layout: 'bottom',
-                theme: 'defaultTheme'
-            }
 
             read_settings_from_cookie();
 
