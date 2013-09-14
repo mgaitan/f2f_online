@@ -1,34 +1,51 @@
-import bottle
+import os
 import subprocess
-from bottle import route, request, run, redirect
+
+from flask import Flask, url_for, redirect, request, jsonify
+
+cmd_folder = os.path.dirname(os.path.abspath(__file__))
+f2f_path = os.path.join(cmd_folder, 'lib', 'f2f.pl')
+app = Flask(__name__, static_url_path='')
 
 
 #2. Define needed routes here
-@route('/')
+@app.route('/')
 def index():
-    return "it works!"
+    return redirect(url_for('static', filename='index.html'))
 
 
-@route('/api')
-def f2f():
+@app.route('/api', methods=['GET', 'POST'])
+def f2fb():
+    if (request.method == 'POST' and request.is_xhr):
 
-    if (request.method == 'POST' and
-            request.headers.get('X-Requested-With') == 'XMLHttpRequest'):
+        cmd = ['perl', f2f_path,
+               '--tab', request.form['tab']]
 
+        base_indent = request.form['base-indent']
+        if base_indent != u'-1':
+            cmd.extend(['--base-indent', base_indent])
+        dp = request.form['dp']
+        if dp == u'8':
+            cmd.extend(['--dp-to-star-kind', '8'])
+        elif dp == u'dp':
+            cmd.extend(['--dp-to-star-kind', 'dp'])
 
+        p = subprocess.Popen(cmd,
+                             stdin=subprocess.PIPE,
+                             stdout=subprocess.PIPE,
+                             stderr=subprocess.PIPE)
+        output, error = p.communicate(input=request.form['source'])
 
-        return 'This is an AJAX request'
+        if request.form['lowercase'] == 'on':
+            output = output.lower()
+
+        return jsonify({'output': output, 'error': error})
+
     else:
         redirect('/')
-
-
-# wsgi hook
-def application(environ, start_response):
-    return bottle.default_app().wsgi(environ, start_response)
 
 
 
 #4. Main method for local developement
 if __name__ == "__main__":
-    bottle.debug(True)
-    run(reloader=True)
+    app.run(debug=True)
